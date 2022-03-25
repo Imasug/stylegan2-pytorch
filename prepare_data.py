@@ -8,6 +8,7 @@ import lmdb
 from tqdm import tqdm
 from torchvision import datasets
 from torchvision.transforms import functional as trans_fn
+from glob import glob
 
 
 def resize_and_convert(img, size, resample, quality=100):
@@ -45,8 +46,7 @@ def prepare(
 ):
     resize_fn = partial(resize_worker, sizes=sizes, resample=resample)
 
-    files = sorted(dataset.imgs, key=lambda x: x[0])
-    files = [(i, file) for i, (file, label) in enumerate(files)]
+    files = [(i, file) for i, file in enumerate(glob(f'{dataset}/**/*.*', recursive=True))]
     total = 0
 
     with multiprocessing.Pool(n_worker) as pool:
@@ -95,7 +95,5 @@ if __name__ == "__main__":
 
     print(f"Make dataset of image sizes:", ", ".join(str(s) for s in sizes))
 
-    imgset = datasets.ImageFolder(args.path)
-
     with lmdb.open(args.out, map_size=1024 ** 4, readahead=False) as env:
-        prepare(env, imgset, args.n_worker, sizes=sizes, resample=resample)
+        prepare(env, args.path, args.n_worker, sizes=sizes, resample=resample)
